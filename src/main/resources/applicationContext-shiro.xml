@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans.xsd
+http://www.springframework.org/schema/aop
+http://www.springframework.org/schema/aop/spring-aop.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context.xsd">
+
+	<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+		<property name="securityManager" ref="securityManager" />
+		<property name="loginUrl" value="/login" />
+		<property name="unauthorizedUrl" value="/refuse" />
+		<property name="successUrl" value="/goindex" />
+		<property name="filters">  
+            <map>  
+                <entry key="logout" value-ref="logoutFilter" />  
+                <entry key="authc" value-ref="myformAuthenticationFilter"/>  
+            </map>  
+        </property> 
+		<property name="filterChainDefinitions">
+			<value>
+				<!-- 对静态资源设置匿名访问 -->
+				/logout = logout
+				/classic/**=anon
+				/resources/**=anon
+				<!-- 请求 logout.action地址，shiro去清除session -->
+				/** = authc
+				<!-- /** = authc 所有url都必须认证通过才可以访问 -->
+				<!-- /** = anon所有url都可以匿名访问 -->
+			</value>
+		</property>
+	</bean>
+
+	<!-- 安全管理器 -->
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<property name="realm" ref="myRealm" />
+		<property name="sessionManager" ref="sessionManager" />
+		<!-- <property name="cacheManager" ref="cacheManager"></property> -->
+	</bean>
+
+	<!-- 自定义 realm -->
+	<bean id="myRealm" class="com.sims.system.shiro.MyRealm">
+		<!-- <property name="credentialsMatcher" ref="credentialsMatcher"></property> -->
+	</bean>
+	
+	<bean id="logoutFilter" class="com.sims.system.shiro.SystemLogoutFilter">  
+	   <property name="redirectUrl" value="/logouts" />  
+	</bean> 
+	
+	<bean id="myformAuthenticationFilter" class="com.sims.system.shiro.MyFormAuthenticationFilter"/>
+
+	<!-- 会话管理器 -->
+	<bean id="sessionManager"
+		class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+		<!-- session的失效时长，单位毫秒 -->
+		<property name="globalSessionTimeout" value="600000" />
+		<!-- 删除失效的session -->
+		<property name="deleteInvalidSessions" value="true" />
+	</bean>
+
+	<!-- 保证实现了Shiro内部lifecycle函数的bean执行 -->
+	<bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor" />
+
+	<!-- AOP式方法级权限检查 -->
+	<bean
+		class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"
+		depends-on="lifecycleBeanPostProcessor">
+		<property name="proxyTargetClass" value="true" />
+	</bean>
+
+</beans>
